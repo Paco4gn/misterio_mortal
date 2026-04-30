@@ -346,6 +346,39 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
 .tab{flex:1;padding:9px 4px;text-align:center;font-family:'Cinzel',serif;font-size:.58rem;
   letter-spacing:.06em;border-radius:4px;cursor:pointer;color:var(--smoke);transition:all .2s}
 .tab.active{background:rgba(180,140,40,.12);color:var(--gold3)}
+.seg-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.seg-btn{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--smoke);background:rgba(255,255,255,.03);border:1px solid rgba(180,140,40,.16);
+  border-radius:4px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s}
+.seg-btn.sel{color:var(--gold3);border-color:rgba(212,170,64,.55);background:rgba(180,140,40,.12);
+  box-shadow:0 0 14px rgba(180,140,40,.16)}
+.mini-select{width:100%;font-family:'EB Garamond',serif;font-size:1rem;color:var(--chalk);
+  background:rgba(255,255,255,.04);border:1px solid rgba(180,140,40,.18);border-radius:3px;
+  padding:11px 13px;outline:none}
+.mini-select option{background:#120d0a;color:#f0e8d0}
+.case-preview{display:flex;align-items:flex-start;gap:12px}
+.case-preview-icon{font-size:2rem;line-height:1;filter:drop-shadow(0 0 12px rgba(212,170,64,.25))}
+.copy-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.host-controls{display:none}
+.host-controls.show{display:block}
+.control-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mini-danger{color:var(--blood3);border-color:rgba(160,30,30,.35)}
+.mini-kick{font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.08em;color:var(--blood3);
+  background:rgba(120,20,20,.12);border:1px solid rgba(160,30,30,.28);border-radius:12px;
+  padding:4px 8px;cursor:pointer}
+.pause-banner{display:none;text-align:center;font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.18em;
+  color:var(--gold3);background:rgba(180,140,40,.12);border:1px solid rgba(180,140,40,.25);
+  border-radius:4px;padding:8px;margin:10px 0 0}
+.pause-banner.show{display:block}
+.qr-box{display:flex;align-items:center;gap:12px}
+.qr-img{width:92px;height:92px;border-radius:4px;background:var(--cream);padding:5px;flex-shrink:0}
+.director-tip{font-size:.88rem;line-height:1.55;color:var(--chalk);font-style:italic}
+.round-callout{background:rgba(180,140,40,.08);border:1px solid rgba(180,140,40,.22);
+  border-radius:var(--r);padding:12px;margin-top:12px}
+.round-callout strong{color:var(--gold3);font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:.06em}
+.mystery-note{background:rgba(64,160,128,.08);border:1px solid rgba(64,160,128,.22);
+  border-radius:var(--r);padding:11px;margin-top:10px;color:var(--ash);font-style:italic;line-height:1.5}
+.vote-meta{font-size:.72rem;color:var(--ash);font-style:italic;line-height:1.35;margin-top:3px}
 .vote-opt{display:flex;align-items:center;gap:12px;padding:14px;
   background:rgba(20,16,12,.9);border:2px solid rgba(180,140,40,.1);
   border-radius:var(--r);margin-bottom:10px;cursor:pointer;transition:all .2s}
@@ -458,7 +491,7 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     </div>
   </div>
   <div class="div-gold mt2"></div>
-  <button class="btn btn-gold mt3" onclick="sfx('click');goTo('s-create')">⚔️ Crear Sala</button>
+  <button class="btn btn-gold mt3" onclick="sfx('click');buildScenarioPicker();goTo('s-create')">⚔️ Crear Sala</button>
   <button class="btn btn-ghost mt2" onclick="sfx('click');goTo('s-join')">🚪 Unirse a una Sala</button>
   <button class="btn btn-ghost mt2" onclick="sfx('click');goTo('s-rules')">📜 Cómo se juega</button>
   <button class="btn btn-ghost mt2" onclick="sfx('click');buildScenarioList();goTo('s-scenarios')">🗂 Ver los 15 escenarios</button>
@@ -681,6 +714,19 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
       <div class="pc-btn" onclick="setPc(8)" id="pc8">8</div>
     </div>
   </div>
+  <div class="card mt2">
+    <span class="t-label mb1">Caso de la noche</span>
+    <select id="scenario-select" class="mini-select" onchange="setScenarioChoice(this.value)"></select>
+    <div id="create-case-preview" class="case-preview mt2"></div>
+  </div>
+  <div class="card mt2">
+    <span class="t-label mb1">Duración del debate</span>
+    <div class="seg-row" id="timer-options">
+      <div class="seg-btn" id="timer-120" onclick="setRoundSeconds(120)">2 min</div>
+      <div class="seg-btn sel" id="timer-180" onclick="setRoundSeconds(180)">3 min</div>
+      <div class="seg-btn" id="timer-300" onclick="setRoundSeconds(300)">5 min</div>
+    </div>
+  </div>
   <button class="btn btn-gold mt3" onclick="createRoom()">Crear Sala →</button>
   <button class="btn btn-ghost mt2" onclick="sfx('click');goTo('s-home')">← Volver</button>
 </div>
@@ -713,8 +759,23 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     <div class="center mt2" style="color:var(--smoke);font-size:.75rem;font-family:'Cinzel',serif;letter-spacing:.1em">CÓDIGO DE SALA</div>
     <div class="room-code mt1" id="lobby-code">----</div>
     <div class="center mt1" style="font-size:.75rem;color:var(--smoke)">Comparte este código con los demás jugadores</div>
+    <div class="copy-row mt2">
+      <button class="btn btn-ghost" onclick="copyRoomCode()">Copiar Código</button>
+      <button class="btn btn-ghost" onclick="shareRoom()">Compartir Enlace</button>
+    </div>
   </div>
   <div class="div-gold"></div>
+  <div class="card mt2" id="lobby-qr-card">
+    <span class="t-label mb1">Entrada rápida</span>
+    <div class="qr-box">
+      <img id="lobby-qr" class="qr-img" alt="QR de la sala">
+      <p class="t-scene" style="font-size:.82rem">Escanea este código para entrar con el móvil sin escribir la sala.</p>
+    </div>
+  </div>
+  <div class="card card-teal mt2" id="lobby-case-card">
+    <span class="t-label t-teal mb1">Caso preparado</span>
+    <div id="lobby-case-preview" class="case-preview"></div>
+  </div>
   <div class="row-between mt2 mb2">
     <span class="t-label" style="margin:0">Jugadores <span id="lob-cur" style="color:var(--gold3)">0</span>/<span id="lob-max">4</span></span>
     <div class="phase-pill"><div class="pdot-pulse"></div>&nbsp;Esperando...</div>
@@ -762,6 +823,11 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     <div class="card card-blood mt2">
       <span class="t-label t-blood mb1">🔒 Tu Verdad Secreta</span>
       <p class="t-body" style="font-size:.88rem" id="role-secret"></p>
+    </div>
+    <div class="card card-teal mt2">
+      <span class="t-label t-teal mb1">🎯 Objetivo Privado</span>
+      <p class="t-body" style="font-size:.88rem" id="role-objective"></p>
+      <div class="mystery-note" id="role-public-pressure"></div>
     </div>
     <div class="card mt2">
       <span class="t-label t-gold mb1">🛡 Tu Coartada</span>
@@ -832,15 +898,26 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     </div>
     <div class="tl mt2" id="timeline"></div>
     <div class="round-progress" id="round-progress"></div>
+    <div class="pause-banner" id="pause-banner">INVESTIGACIÓN EN PAUSA</div>
   </div>
   <div class="div-blood"></div>
+  <div class="card card-gold mt2 host-controls" id="host-controls">
+    <span class="t-label mb1">Mesa del anfitrión</span>
+    <div class="control-grid">
+      <button class="btn btn-ghost" id="pause-btn" onclick="togglePause()">Pausar</button>
+      <button class="btn btn-ghost" onclick="forceVote()">Forzar voto</button>
+    </div>
+    <button class="btn btn-ghost mini-danger mt2" onclick="skipRound()">Saltar ronda</button>
+  </div>
   <div class="card card-blood">
     <div class="row mb1">
       <div style="width:10px;height:10px;border-radius:50%;background:var(--blood3);box-shadow:0 0 8px var(--blood2);flex-shrink:0"></div>
       <span class="t-label t-blood" style="margin:0">Nueva Pista — Ronda <span id="clue-round-n">1</span></span>
     </div>
     <p class="t-body" id="new-clue-txt" style="font-size:.92rem"></p>
+    <div class="mystery-note" id="public-doubt"></div>
   </div>
+  <div class="round-callout" id="debate-prompt"></div>
   <div class="tabs mt2">
     <div class="tab active" onclick="debTab('pistas')" id="dtab-pistas">📋 Pistas</div>
     <div class="tab" onclick="debTab('rol')" id="dtab-rol">🎭 Mi Rol</div>
@@ -864,6 +941,11 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
       <span class="t-label t-blood mb1">🔒 Tu Verdad Secreta</span>
       <p class="t-body" style="font-size:.88rem" id="deb-secret"></p>
     </div>
+    <div class="card card-teal mt2">
+      <span class="t-label t-teal mb1">🎯 Objetivo Privado</span>
+      <p class="t-body" style="font-size:.88rem" id="deb-objective"></p>
+      <div class="mystery-note" id="deb-public-pressure"></div>
+    </div>
     <div class="card mt2">
       <span class="t-label t-gold mb1">🛡 Tu Coartada</span>
       <p class="t-scene" id="deb-alibi"></p>
@@ -875,6 +957,10 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     <div class="card card-gold mt2" id="deb-power-card" style="display:none">
       <span class="t-label mb1" style="color:#d080ff">⚡ Tu Poder</span>
       <p class="t-body" style="font-size:.85rem" id="deb-power-txt"></p>
+    </div>
+    <div class="card mt2">
+      <span class="t-label mb1">📝 Mis Notas Privadas</span>
+      <textarea class="note-area" id="deb-notes" placeholder="Sospechas, contradicciones, coartadas..."></textarea>
     </div>
   </div>
   <div id="dpan-sosp" style="display:none">
@@ -921,6 +1007,7 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
   <div class="card mt3 w100">
     <span class="t-label mb2">⚠️ Sospecha Acumulada</span>
     <div id="re-sus"></div>
+    <div id="re-summary" class="round-callout"></div>
   </div>
   <div class="card mt2 w100" id="re-next-card">
     <span class="t-label t-blood mb1">🔍 Próxima Pista</span>
@@ -956,6 +1043,7 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     <span class="t-label t-teal mb2">📖 La Verdad del Crimen</span>
     <p class="t-scene" id="verdict-truth"></p>
   </div>
+  <button class="btn btn-ghost mt3" onclick="copyVerdictSummary()">Copiar Resumen</button>
   <button class="btn btn-gold mt3" onclick="playAgain()">🔄 Nueva Partida</button>
   <button class="btn btn-ghost mt2" onclick="leaveRoom()">Menú Principal</button>
 </div>
@@ -1312,7 +1400,76 @@ roles:[
 
 
 // ══ STATE ══
-let G={code:null,myId:null,myName:null,isHost:false,playerCount:4,myRole:null,scenario:null,currentRound:0,selectedVote:null,timerInt:null,unsubs:[]};
+let G={code:null,myId:null,myName:null,isHost:false,playerCount:4,myRole:null,scenario:null,selectedScenarioIdx:-1,roundSeconds:180,currentRound:0,selectedVote:null,timerInt:null,unsubs:[]};
+const SESSION_KEY='misterio_mortal_session_v2';
+const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const cleanName=v=>String(v??'').trim().replace(/\s+/g,' ').slice(0,20);
+const cleanCode=v=>String(v??'').trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);
+function saveSession(extra={}){
+  if(!G.code||!G.myId)return;
+  try{
+    localStorage.setItem(SESSION_KEY,JSON.stringify({
+      code:G.code,myId:G.myId,myName:G.myName,isHost:G.isHost,playerCount:G.playerCount,
+      scenarioIdx:SCENARIOS.indexOf(G.scenario),selectedScenarioIdx:G.selectedScenarioIdx,roundSeconds:G.roundSeconds,...extra
+    }));
+  }catch(e){}
+}
+function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
+const notesKey=()=>G.code&&G.myId?`misterio_mortal_notes_${G.code}_${G.myId}`:'misterio_mortal_notes_draft';
+function loadNotes(){try{return localStorage.getItem(notesKey())||'';}catch(e){return'';}}
+function saveNotes(v){try{localStorage.setItem(notesKey(),v||'');}catch(e){}}
+function bindNotes(){
+  const val=loadNotes();
+  ['role-notes','deb-notes'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.value=val;
+    el.oninput=()=>{saveNotes(el.value);const other=document.getElementById(id==='role-notes'?'deb-notes':'role-notes');if(other&&other.value!==el.value)other.value=el.value;};
+  });
+}
+let lastVerdictSummary='';
+const DEBATE_PROMPTS=[
+  'Que cada jugador explique su coartada en una sola frase. Nadie puede interrumpir.',
+  'El grupo debe elegir a dos sospechosos principales y obligarlos a responder tres preguntas rápidas.',
+  'Cada jugador debe acusar a alguien distinto y dar un motivo concreto.',
+  'El más sospechoso puede defenderse durante treinta segundos sin interrupciones.',
+  'Buscad una contradicción: horarios, accesos, móvil, objetos o motivo.',
+  'El asesino debería sembrar duda ahora. Los inocentes deberían exigir detalles verificables.'
+];
+const SUSPICION_PROFILES=[
+  'Su coartada tiene un hueco de tiempo que nadie puede confirmar.',
+  'Tenía acceso a un lugar clave aunque intenta minimizarlo.',
+  'Oculta un motivo personal que no quiere explicar delante de todos.',
+  'Alguien asegura haberle visto nervioso después del crimen.',
+  'Tiene conocimientos o herramientas compatibles con el método usado.',
+  'Su historia encaja demasiado bien, como si estuviera preparada.',
+  'Hay un objeto o documento que podría relacionarle con la escena.',
+  'Insiste en acusar a otros antes de responder preguntas sencillas.'
+];
+const INNOCENT_OBJECTIVES=[
+  'Desvía la atención de tu propio secreto sin mentir de forma imposible. Si te descubren, parecerás culpable aunque no lo seas.',
+  'Consigue que al menos otra persona confirme o dude de tu coartada antes de la votación.',
+  'Haz que dos jugadores se contradigan entre sí antes de revelar toda tu información.',
+  'Protege tu reputación: no permitas que el grupo convierta tu secreto en el centro de la ronda.',
+  'Guarda una pista para el momento de mayor tensión. Revelarla demasiado pronto puede ayudar al asesino.',
+  'Presiona a quien tenga acceso al lugar del crimen, no solo a quien tenga motivo.'
+];
+const KILLER_OBJECTIVES=[
+  'No niegues todo: admite una falta menor y úsala como cortina de humo para parecer humano.',
+  'Haz que dos inocentes se acusen entre sí antes de la primera votación.',
+  'Apoya una pista verdadera, pero interpreta su significado contra otra persona.',
+  'No lideres todas las acusaciones. Si pareces demasiado útil, sospecharán de ti.',
+  'Construye una coartada compartida con alguien inocente sin que se dé cuenta.',
+  'Convierte el secreto de otro jugador en el asunto principal de la ronda.'
+];
+const DOUBT_CARDS=[
+  'Duda razonable: esta pista prueba acceso o motivo, pero no autoría directa.',
+  'Duda razonable: alguien pudo preparar la escena para incriminar a otra persona.',
+  'Duda razonable: una coartada débil no equivale a culpabilidad.',
+  'Duda razonable: el asesino puede estar usando una verdad parcial para parecer inocente.',
+  'Duda razonable: el móvil más obvio puede ser una distracción.',
+  'Duda razonable: las pistas físicas señalan oportunidad, no intención.'
+];
 
 // ══ UTILS ══
 const uid=()=>Math.random().toString(36).substr(2,9);
@@ -1346,6 +1503,42 @@ window.rulesTab=rulesTab;
 // ══ PLAYER COUNT ══
 function setPc(n){G.playerCount=n;document.querySelectorAll('#pc-btns .pc-btn').forEach(b=>b.classList.remove('sel'));document.getElementById('pc'+n)?.classList.add('sel');}
 window.setPc=setPc;setPc(4);
+
+function renderCasePreview(elId,scenario,roundSeconds=G.roundSeconds){
+  const el=document.getElementById(elId);
+  if(!el||!scenario)return;
+  el.innerHTML=`<div class="case-preview-icon">${esc(scenario.emoji)}</div>
+    <div style="flex:1">
+      <div style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--gold3);line-height:1.25">${esc(scenario.title)}</div>
+      <div style="font-size:.72rem;color:var(--smoke);font-style:italic;margin-top:2px">Víctima: ${esc(scenario.victim)} · Debate ${Math.round(roundSeconds/60)} min</div>
+      <div style="font-size:.78rem;color:var(--ash);line-height:1.45;margin-top:5px">${esc(scenario.setting.substring(0,150))}...</div>
+    </div>`;
+}
+
+function buildScenarioPicker(){
+  const sel=document.getElementById('scenario-select');
+  if(!sel)return;
+  sel.innerHTML='<option value="-1">Aleatorio: que el destino decida</option>'+SCENARIOS.map((s,i)=>`<option value="${i}">${esc(s.title)} — ${esc(s.victim)}</option>`).join('');
+  sel.value=String(G.selectedScenarioIdx);
+  renderCasePreview('create-case-preview',G.selectedScenarioIdx>=0?SCENARIOS[G.selectedScenarioIdx]:SCENARIOS[0]);
+}
+window.buildScenarioPicker=buildScenarioPicker;
+
+function setScenarioChoice(value){
+  G.selectedScenarioIdx=Number(value);
+  renderCasePreview('create-case-preview',G.selectedScenarioIdx>=0?SCENARIOS[G.selectedScenarioIdx]:SCENARIOS[0]);
+  sfx('click');
+}
+window.setScenarioChoice=setScenarioChoice;
+
+function setRoundSeconds(seconds){
+  G.roundSeconds=Number(seconds)||180;
+  document.querySelectorAll('#timer-options .seg-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('timer-'+G.roundSeconds)?.classList.add('sel');
+  renderCasePreview('create-case-preview',G.selectedScenarioIdx>=0?SCENARIOS[G.selectedScenarioIdx]:SCENARIOS[0],G.roundSeconds);
+  sfx('click');
+}
+window.setRoundSeconds=setRoundSeconds;
 
 // ══ ROLE ASSIGNMENT ══
 function assignRole(playerId, idx, scenario){
@@ -1384,27 +1577,33 @@ function getSpecialBadge(special){
   const sp=ROLES_POOL[special];
   if(!sp)return'';
   const cls=special==='detective'?'sp-detective':special==='accomplice'?'sp-accomplice':special==='witness'?'sp-witness':special==='medium'?'sp-medium':'sp-witness';
-  return`<span class="special-badge ${cls}">${sp.label}</span>`;
+  return`<span class="special-badge ${cls}">${esc(sp.label)}</span>`;
 }
 
 // ══ CREATE ROOM ══
 async function createRoom(){
-  const name=document.getElementById('create-name').value.trim();
+  const name=cleanName(document.getElementById('create-name').value);
   if(!name){toast('Escribe tu nombre');return;}
-  G.myId=uid();G.myName=name;G.isHost=true;G.code=genCode();
-  const sidx=Math.floor(Math.random()*SCENARIOS.length);
+  G.myId=uid();G.myName=name;G.isHost=true;
+  let code=genCode(),tries=0;
+  while((await get(ref(db,`salas/${code}`))).exists()&&tries++<8)code=genCode();
+  G.code=code;
+  const sidx=G.selectedScenarioIdx>=0?G.selectedScenarioIdx:Math.floor(Math.random()*SCENARIOS.length);
   G.scenario=SCENARIOS[sidx];
-  await set(rRef(),{host:G.myId,playerCount:G.playerCount,scenarioIdx:sidx,phase:'lobby',players:{[G.myId]:{id:G.myId,name,isHost:true}}});
+  await set(rRef(),{host:G.myId,playerCount:G.playerCount,scenarioIdx:sidx,selectedScenarioIdx:G.selectedScenarioIdx,roundSeconds:G.roundSeconds,phase:'lobby',players:{[G.myId]:{id:G.myId,name,isHost:true}}});
+  saveSession({scenarioIdx:sidx,selectedScenarioIdx:G.selectedScenarioIdx,roundSeconds:G.roundSeconds});
   document.getElementById('lobby-code').textContent=G.code;
   document.getElementById('lob-max').textContent=G.playerCount;
+  renderCasePreview('lobby-case-preview',G.scenario,G.roundSeconds);
+  updateLobbyInvite();
   sfx('click');goTo('s-lobby');listenLobby();
 }
 window.createRoom=createRoom;
 
 // ══ JOIN ROOM ══
 async function joinRoom(){
-  const name=document.getElementById('join-name').value.trim();
-  const code=document.getElementById('join-code').value.trim().toUpperCase();
+  const name=cleanName(document.getElementById('join-name').value);
+  const code=cleanCode(document.getElementById('join-code').value);
   if(!name){toast('Escribe tu nombre');return;}
   if(code.length!==4){toast('Código de 4 letras');return;}
   const snap=await get(ref(db,`salas/${code}`));
@@ -1412,8 +1611,9 @@ async function joinRoom(){
   const room=snap.val();
   if(room.phase!=='lobby'){toast('La partida ya comenzó');return;}
   if(Object.keys(room.players||{}).length>=room.playerCount){toast('Sala llena');return;}
-  G.myId=uid();G.myName=name;G.isHost=false;G.code=code;G.playerCount=room.playerCount;G.scenario=SCENARIOS[room.scenarioIdx];
+  G.myId=uid();G.myName=name;G.isHost=false;G.code=code;G.playerCount=room.playerCount;G.scenario=SCENARIOS[room.scenarioIdx];G.roundSeconds=room.roundSeconds||180;
   await set(ref(db,`salas/${code}/players/${G.myId}`),{id:G.myId,name,isHost:false});
+  saveSession({scenarioIdx:room.scenarioIdx,roundSeconds:G.roundSeconds});
   document.getElementById('wait-code').textContent=code;
   sfx('click');goTo('s-waiting');listenGlobal();listenPlayerList('wait-players');
 }
@@ -1433,14 +1633,54 @@ function listenLobby(){
   listenGlobal();
 }
 
+function roomJoinUrl(){
+  const url=new URL(location.href);
+  url.searchParams.set('room',G.code||'');
+  return url.toString();
+}
+
+function updateLobbyInvite(){
+  if(!G.code)return;
+  const img=document.getElementById('lobby-qr');
+  if(img)img.src='https://api.qrserver.com/v1/create-qr-code/?size=184x184&margin=12&data='+encodeURIComponent(roomJoinUrl());
+}
+
+async function copyRoomCode(){
+  if(!G.code)return;
+  try{await navigator.clipboard.writeText(G.code);toast('Código copiado');}
+  catch(e){toast('Código: '+G.code);}
+  sfx('click');
+}
+window.copyRoomCode=copyRoomCode;
+
+async function shareRoom(){
+  if(!G.code)return;
+  const text=`Misterio Mortal · Sala ${G.code}`;
+  const url=roomJoinUrl();
+  try{
+    if(navigator.share)await navigator.share({title:'Misterio Mortal',text,url});
+    else{await navigator.clipboard.writeText(`${text}\n${url}`);toast('Enlace copiado');}
+  }catch(e){}
+  sfx('click');
+}
+window.shareRoom=shareRoom;
+
 function renderPlayers(elId,pl){
+  const canKick=G.isHost&&elId==='lob-players';
   document.getElementById(elId).innerHTML=pl.map(p=>`
     <div class="player-row">
       <div class="pdot ${p.isHost?'pdot-host':'pdot-gold'}"></div>
-      <div class="player-row-name">${p.name}</div>
-      <div class="player-row-tag">${p.isHost?'Anfitrión':''}</div>
+      <div class="player-row-name">${esc(p.name)}</div>
+      <div class="player-row-tag">${p.isHost?'Anfitrión':(canKick?`<button class="mini-kick" onclick="kickPlayer('${esc(p.id)}')">Expulsar</button>`:'')}</div>
     </div>`).join('');
 }
+
+async function kickPlayer(id){
+  if(!G.isHost||!G.code||id===G.myId)return;
+  await remove(ref(db,`salas/${G.code}/players/${id}`));
+  toast('Jugador expulsado');
+}
+window.kickPlayer=kickPlayer;
 
 function listenPlayerList(elId){
   const u=onValue(rRef('players'),snap=>{renderPlayers(elId,Object.values(snap.val()||{}));});
@@ -1490,6 +1730,22 @@ async function startGame(){
   // Barajar orden de las pistas extra
   const extraOrder=shuffle([...Array((sc.extraClues||[]).length+sc.roles.length).keys()]);
 
+  const witnessTargets={};
+  const pressureProfiles={};
+  const privateObjectives={};
+  const doubtCards=shuffle([...(sc.extraClues||[]).map(c=>'Rumor contradictorio: '+c),...DOUBT_CARDS]).slice(0,3);
+  players.forEach(p=>{
+    const idx=assignments[p.id];
+    const role=assignRole(p.id,idx,sc);
+    const special=idx===killerIdx?null:(roleSpecials[idx]||role.special||null);
+    pressureProfiles[p.id]=SUSPICION_PROFILES[idx%SUSPICION_PROFILES.length];
+    privateObjectives[p.id]=(idx===killerIdx?KILLER_OBJECTIVES:INNOCENT_OBJECTIVES)[idx%(idx===killerIdx?KILLER_OBJECTIVES.length:INNOCENT_OBJECTIVES.length)];
+    if(special==='witness'){
+      const others=players.filter(o=>o.id!==p.id);
+      if(others.length)witnessTargets[p.id]=others[Math.floor(Math.random()*others.length)].id;
+    }
+  });
+
   sfx('reveal');
   await update(rRef(),{
     phase:'roles',
@@ -1497,13 +1753,20 @@ async function startGame(){
     killerIdx,       // índice del rol asesino esta partida
     roleSpecials,
     roleAlibiIdx,
+    witnessTargets,
+    pressureProfiles,
+    privateObjectives,
+    doubtCards,
     extraOrder,
     clue4,
+    roundSeconds:G.roundSeconds,
     confirmedRoles:{},
     round:0,
     roundVotes:{},
     allVotes:[],
-    readyForDebate:{}
+    readyForDebate:{},
+    timerPaused:false,
+    timerRemaining:null
   });
 }
 window.startGame=startGame;
@@ -1514,18 +1777,88 @@ function listenGlobal(){
   if(_globalListening)return;
   _globalListening=true;
   const u=onValue(rRef(),snap=>{
-    if(!snap.exists())return;
+    if(!snap.exists()){
+      if(G.code){toast('La sala se ha cerrado');clearSession();unsub();_globalListening=false;goTo('s-home');}
+      return;
+    }
     const d=snap.val();const phase=d.phase;
+    if(G.myId&&d.players&&!d.players[G.myId]){toast('Ya no estás en la sala');clearSession();unsub();_globalListening=false;goTo('s-home');return;}
+    if(!G.scenario&&d.scenarioIdx!==undefined)G.scenario=SCENARIOS[d.scenarioIdx];
+    if(d.roundSeconds)G.roundSeconds=d.roundSeconds;
     const cur=document.querySelector('.screen.active')?.id;
     if(!phase)return;
     if(phase==='roles'&&cur!=='s-role'&&cur!=='s-roles-wait')enterRoleScreen(d);
     else if(phase==='scenario'&&cur==='s-roles-wait')showScenario();
-    else if(phase==='debate'&&cur!=='s-debate')enterDebate(d);
+    else if(phase==='debate'&&cur!=='s-vote'&&cur!=='s-vote-wait')enterDebate(d);
     else if(phase==='vote'&&cur!=='s-vote'&&cur!=='s-vote-wait')enterVoteScreen(d);
     else if(phase==='round_end'&&cur!=='s-round-end')enterRoundEnd(d);
     else if(phase==='verdict'&&cur!=='s-verdict')enterVerdict(d);
   });
   G.unsubs.push(u);
+}
+
+function hydrateMyRole(d){
+  const idx=d.assignments?.[G.myId];
+  if(idx===undefined||!G.scenario)return null;
+  const baseRole=assignRole(G.myId,idx,G.scenario);
+  const killerIdx=d.killerIdx??G.scenario.roles.findIndex(r=>r.isKiller);
+  const amKiller=idx===killerIdx;
+  const role={...baseRole,isKiller:amKiller,special:amKiller?null:((d.roleSpecials||{})[idx]||baseRole.special||null)};
+  role._objective=(d.privateObjectives||{})[G.myId]||'Sobrevive a la sospecha y consigue que el grupo se fije en las contradicciones reales.';
+  role._publicPressure=(d.pressureProfiles||{})[G.myId]||'Hay algo en tu historia que puede levantar sospechas si te presionan.';
+  if(amKiller&&!baseRole.isKiller){
+    role.secret=baseRole.killerSecret||('Eres el asesino. Tenías motivos: '+baseRole.secret+' Esa noche aprovechaste la oportunidad. Nadie te vio... o eso crees.');
+  }
+  const alibiPool=baseRole.alibis||[baseRole.alibi||''];
+  const chosenAlibiIdx=(d.roleAlibiIdx||{})[idx]??0;
+  role._chosenAlibi=alibiPool[chosenAlibiIdx%alibiPool.length]||alibiPool[0]||'';
+  if(role.special==='detective'){
+    role._clue4=d.clue4||G.scenario.clues[3]||G.scenario.clues[G.scenario.clues.length-1];
+    role.secret=(role.secret||'')+'\n\n🔍 TU PISTA SECRETA (solo tú la ves):\n"'+role._clue4+'"\n\nMemorízala. No aparecerá en ningún otro sitio.';
+  }
+  const fakeClue=role.falseClue||'';
+  const otherFalseClues=G.scenario.roles.filter(r=>r.falseClue&&r.falseClue!==fakeClue).map(r=>r.falseClue);
+  const extraPool=[...(G.scenario.extraClues||[]),...otherFalseClues];
+  const extraOrder=d.extraOrder||[];
+  const myExtraPos=extraOrder.length>0?(extraOrder[idx%extraOrder.length]??idx):idx;
+  const poolClue=extraPool.length>0?extraPool[myExtraPos%extraPool.length]:'';
+  role._twoClues=(idx%2===0)?[fakeClue,poolClue]:[poolClue,fakeClue];
+  G.myRole=role;
+  return role;
+}
+
+async function restoreSession(){
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(e){}
+  if(!saved?.code||!saved?.myId)return;
+  const snap=await get(ref(db,`salas/${saved.code}`));
+  if(!snap.exists()){clearSession();return;}
+  const room=snap.val();
+  if(!room.players?.[saved.myId]){clearSession();return;}
+  G={...G,code:saved.code,myId:saved.myId,myName:saved.myName||room.players[saved.myId].name,
+    isHost:!!saved.isHost,playerCount:room.playerCount||saved.playerCount||4,
+    scenario:SCENARIOS[room.scenarioIdx??saved.scenarioIdx]||SCENARIOS[0],
+    selectedScenarioIdx:room.selectedScenarioIdx??saved.selectedScenarioIdx??-1,
+    roundSeconds:room.roundSeconds||saved.roundSeconds||180};
+  document.getElementById('lobby-code').textContent=G.code;
+  document.getElementById('lob-max').textContent=G.playerCount;
+  document.getElementById('wait-code').textContent=G.code;
+  renderCasePreview('lobby-case-preview',G.scenario,G.roundSeconds);
+  updateLobbyInvite();
+  if(room.phase==='lobby'){
+    if(G.isHost){goTo('s-lobby');listenLobby();}
+    else{goTo('s-waiting');listenGlobal();listenPlayerList('wait-players');}
+  }else{
+    listenGlobal();
+    const phase=room.phase;
+    if(phase==='roles')enterRoleScreen(room);
+    else if(phase==='scenario')showScenario();
+    else if(phase==='debate')enterDebate(room);
+    else if(phase==='round_end')enterRoundEnd(room);
+    else if(phase==='verdict')enterVerdict(room);
+    else goTo(G.isHost?'s-lobby':'s-waiting');
+    toast('Sesión recuperada');
+  }
 }
 
 // ══ ROLE SCREEN ══
@@ -1543,6 +1876,8 @@ function enterRoleScreen(d){
     isKiller: amKiller,
     special: amKiller ? null : (roleSpecials[idx]||baseRole.special||null)
   };
+  role._objective=(d.privateObjectives||{})[G.myId]||'Sobrevive a la sospecha y consigue que el grupo se fije en las contradicciones reales.';
+  role._publicPressure=(d.pressureProfiles||{})[G.myId]||'Hay algo en tu historia que puede levantar sospechas si te presionan.';
   // Si soy el asesino, construir secret con killerSecret del rol si existe
   if(amKiller && !baseRole.isKiller){
     // Este personaje no era el asesino original — usar su killerSecret específico
@@ -1569,6 +1904,8 @@ function enterRoleScreen(d){
 
   const specialSnap=role.special?ROLES_POOL[role.special]:null;
   document.getElementById('role-power-wrap-top').innerHTML=specialSnap?getSpecialBadge(role.special):'';
+  document.getElementById('role-objective').textContent=role._objective;
+  document.getElementById('role-public-pressure').textContent='Lo que los demás podrían usar contra ti: '+role._publicPressure;
 
   // Build secret text with special role info
   let secretText=role.secret||'';
@@ -1601,8 +1938,10 @@ function enterRoleScreen(d){
   if(role.special==='witness'){
     get(rRef('players')).then(psnap=>{
       const others=Object.values(psnap.val()||{}).filter(p=>p.id!==G.myId);
+      const targetId=d.witnessTargets?.[G.myId];
+      const chosen=others.find(p=>p.id===targetId)||others[0];
       if(others.length){
-        const seen=others[Math.floor(Math.random()*others.length)];
+        const seen=chosen;
         G.myRole._witnessName=seen.name;
         const witnessTxt=secretText+'\n\n👁 Esa noche viste a '+seen.name+' cerca de la escena del crimen. Puedes revelarlo cuando quieras diciendo: "Yo vi a '+seen.name+' esa noche."';
         document.getElementById('role-secret').textContent=witnessTxt;
@@ -1642,7 +1981,7 @@ function enterRoleScreen(d){
   if(cluesWrap){
     cluesWrap.innerHTML=twoClues.filter(c=>c).map(c=>`
       <div style="background:rgba(212,170,64,.06);border:1px solid rgba(212,170,64,.15);border-radius:4px;padding:10px;margin-bottom:8px;font-size:.88rem;font-style:italic;color:var(--ash);line-height:1.5">
-        📌 ${c}
+        📌 ${esc(c)}
       </div>`).join('');
   }
 
@@ -1661,6 +2000,7 @@ function enterRoleScreen(d){
 
   sfx(isK?'killer':'innocent');
   if(isK)drips(6);
+  bindNotes();
   goTo('s-role');
 }
 
@@ -1690,7 +2030,7 @@ async function confirmRole(){
     const players=Object.values(psnap.val()||{});
     document.getElementById('rw-list').innerHTML=players.map(p=>{
       const ok=!!confirmed[p.id];
-      return`<div class="player-row"><div class="pdot ${ok?'pdot-green':'pdot-dim'}"></div><div class="player-row-name">${p.name}</div><div class="player-row-tag" style="color:${ok?'var(--gold3)':'var(--smoke)'}">${ok?'✓ Listo':'...'}</div></div>`;
+      return`<div class="player-row"><div class="pdot ${ok?'pdot-green':'pdot-dim'}"></div><div class="player-row-name">${esc(p.name)}</div><div class="player-row-tag" style="color:${ok?'var(--gold3)':'var(--smoke)'}">${ok?'✓ Listo':'...'}</div></div>`;
     }).join('');
     if(G.isHost&&done>=total&&total>0)await update(rRef(),{phase:'scenario'});
   });
@@ -1717,7 +2057,7 @@ async function readyForDebate(){
     const total=Object.keys(snap.val()||{}).length;
     const check=async()=>{
       const rs=await get(rRef('readyForDebate'));
-      if(Object.keys(rs.val()||{}).length>=total)await update(rRef(),{phase:'debate',round:1,timerStart:Date.now()});
+      if(Object.keys(rs.val()||{}).length>=total)await update(rRef(),{phase:'debate',round:1,timerStart:Date.now(),roundSeconds:G.roundSeconds,timerPaused:false,timerRemaining:null});
       else setTimeout(check,800);
     };
     check();
@@ -1727,8 +2067,13 @@ window.readyForDebate=readyForDebate;
 
 // ══ DEBATE ══
 function enterDebate(d){
-  const round=d.round||1;G.currentRound=round;
+  const round=d.round||1;
+  const cur=document.querySelector('.screen.active')?.id;
+  const majorEntry=cur!=='s-debate'||G.currentRound!==round;
+  G.currentRound=round;
   const s=G.scenario;
+  if(d.roundSeconds)G.roundSeconds=d.roundSeconds;
+  if(!G.myRole)hydrateMyRole(d);
   const clue=s.clues[round-1]||'—';
 
   document.getElementById('debate-badge').textContent='Ronda '+round;
@@ -1736,6 +2081,9 @@ function enterDebate(d){
   document.getElementById('clue-round-n').textContent=round;
   document.getElementById('new-clue-txt').textContent=clue;
   document.getElementById('deb-setting').textContent=s.setting;
+  document.getElementById('public-doubt').textContent=(d.doubtCards||DOUBT_CARDS)[(round-1)%((d.doubtCards||DOUBT_CARDS).length)]||'Duda razonable: ninguna pista por sí sola debería cerrar el caso.';
+  const prompt=DEBATE_PROMPTS[(round-1)%DEBATE_PROMPTS.length];
+  document.getElementById('debate-prompt').innerHTML=`<strong>Presión de ronda</strong><div class="director-tip">${esc(prompt)}</div>`;
 
   // Timeline
   const tl=document.getElementById('timeline');
@@ -1749,7 +2097,7 @@ function enterDebate(d){
 
   // All clues
   let cluesHtml='';
-  for(let i=0;i<round;i++){cluesHtml+=`<div class="clue-entry"><div class="clue-n">${i+1}</div><div class="clue-txt">${s.clues[i]}</div></div>`;}
+  for(let i=0;i<round;i++){cluesHtml+=`<div class="clue-entry"><div class="clue-n">${i+1}</div><div class="clue-txt">${esc(s.clues[i])}</div></div>`;}
   document.getElementById('all-clues-list').innerHTML=cluesHtml;
 
   // My role panel
@@ -1765,9 +2113,11 @@ function enterDebate(d){
     document.getElementById('deb-role-alias').textContent=role.name||'';
     document.getElementById('deb-identity-card').style.borderColor=isK?'var(--blood2)':'var(--teal2)';
     const badgeWrap=document.getElementById('deb-role-badge-wrap');
-    badgeWrap.innerHTML=sp?`<span class="role-power">${sp.label}</span>`:'';
+    badgeWrap.innerHTML=sp?`<span class="role-power">${esc(sp.label)}</span>`:'';
 
     document.getElementById('deb-secret').textContent=role.secret||'';
+    document.getElementById('deb-objective').textContent=role._objective||'Encuentra contradicciones sin regalar toda tu información.';
+    document.getElementById('deb-public-pressure').textContent='Lo que los demás podrían usar contra ti: '+(role._publicPressure||'Tu coartada tiene algún punto discutible.');
     document.getElementById('deb-alibi').textContent=role._chosenAlibi||(role.alibis?role.alibis[0]:role.alibi||'');
     // Mismas dos pistas mezcladas que vio en la pantalla de rol
     const debCluesWrap=document.getElementById('deb-clues-wrap');
@@ -1775,7 +2125,7 @@ function enterDebate(d){
       const tc=role._twoClues||[];
       debCluesWrap.innerHTML=tc.map(c=>`
         <div style="background:rgba(212,170,64,.06);border:1px solid rgba(212,170,64,.15);border-radius:4px;padding:10px;margin-bottom:8px;font-size:.88rem;font-style:italic;color:var(--ash);line-height:1.5">
-          📌 ${c}
+          📌 ${esc(c)}
         </div>`).join('');
     }
     if(sp){
@@ -1797,17 +2147,31 @@ function enterDebate(d){
 
   renderSuspicion(d.allVotes||[]);
   debTab('pistas');
-  sfx('clue');
-  goTo('s-debate');
-  startTimer(d.timerStart);
+  bindNotes();
+  document.getElementById('host-controls')?.classList.toggle('show',!!G.isHost);
+  document.getElementById('pause-banner')?.classList.toggle('show',!!d.timerPaused);
+  const pauseBtn=document.getElementById('pause-btn');
+  if(pauseBtn)pauseBtn.textContent=d.timerPaused?'Reanudar':'Pausar';
+  if(majorEntry)sfx('clue');
+  if(majorEntry)goTo('s-debate');
+  startTimer(d.timerStart,d);
 }
 
-function startTimer(startTime){
+function startTimer(startTime,d={}){
   clearInterval(G.timerInt);
-  const TOTAL=180;
+  const TOTAL=G.roundSeconds||180;
   const fill=document.getElementById('tc-fill');
   const txt=document.getElementById('timer-txt');
   const C=2*Math.PI*34;
+  let autoVoteSent=false;
+  if(d.timerPaused){
+    const rem=Math.max(0,d.timerRemaining??TOTAL);
+    const m=Math.floor(rem/60),s=rem%60;
+    txt.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+    fill.style.stroke='var(--gold2)';
+    fill.style.strokeDashoffset=C*(1-rem/TOTAL);
+    return;
+  }
   const tick=()=>{
     const elapsed=Math.floor((Date.now()-startTime)/1000);
     const rem=Math.max(0,TOTAL-elapsed);
@@ -1817,6 +2181,12 @@ function startTimer(startTime){
     if(rem<=30){fill.style.stroke='var(--blood3)';txt.style.color='var(--blood3)';if(rem%2===0)sfx('tick');}
     else if(rem<=60){fill.style.stroke='#e67e22';txt.style.color='#e67e22';}
     else{fill.style.stroke='var(--gold2)';txt.style.color='var(--gold2)';}
+    if(rem<=0&&!autoVoteSent){
+      autoVoteSent=true;
+      clearInterval(G.timerInt);
+      if(G.isHost)update(rRef(),{phase:'vote'}).catch(()=>{});
+      else goToVote();
+    }
   };
   tick();G.timerInt=setInterval(tick,1000);
 }
@@ -1829,6 +2199,43 @@ function debTab(name){
 }
 window.debTab=debTab;
 
+function remainingSeconds(d){
+  const total=d.roundSeconds||G.roundSeconds||180;
+  if(d.timerPaused)return Math.max(0,d.timerRemaining??total);
+  return Math.max(0,total-Math.floor((Date.now()-(d.timerStart||Date.now()))/1000));
+}
+
+async function togglePause(){
+  if(!G.isHost)return;
+  const snap=await get(rRef());
+  const d=snap.val()||{};
+  const total=d.roundSeconds||G.roundSeconds||180;
+  if(d.timerPaused){
+    const rem=Math.max(0,d.timerRemaining??total);
+    await update(rRef(),{timerPaused:false,timerStart:Date.now()-(total-rem)*1000,timerRemaining:null});
+    toast('Debate reanudado');
+  }else{
+    await update(rRef(),{timerPaused:true,timerRemaining:remainingSeconds(d)});
+    toast('Debate pausado');
+  }
+}
+window.togglePause=togglePause;
+
+async function forceVote(){
+  if(!G.isHost)return;
+  clearInterval(G.timerInt);
+  await update(rRef(),{phase:'vote',timerPaused:false,timerRemaining:null});
+}
+window.forceVote=forceVote;
+
+async function skipRound(){
+  if(!G.isHost)return;
+  const snap=await get(rRef());
+  const d=snap.val()||{};
+  await closeRound(d,Object.values(d.players||{}));
+}
+window.skipRound=skipRound;
+
 function renderSuspicion(allVotes){
   const counts={};
   allVotes.forEach(rv=>{if(rv)Object.values(rv).forEach(id=>{counts[id]=(counts[id]||0)+1;});});
@@ -1838,7 +2245,7 @@ function renderSuspicion(allVotes){
     const total=allVotes.reduce((a,rv)=>a+(rv?Object.keys(rv).length:0),0)||1;
     document.getElementById('sus-bars').innerHTML=players.map(p=>{
       const c=counts[p.id]||0;const pct=Math.round((c/max)*100);
-      return`<div class="sus-row"><div class="sus-name">${p.name}</div><div class="sus-bg"><div class="sus-fill${pct>60?' hot':''}" style="width:${pct}%"></div></div><div class="sus-pct">${c}</div></div>`;
+      return`<div class="sus-row"><div class="sus-name">${esc(p.name)}</div><div class="sus-bg"><div class="sus-fill${pct>60?' hot':''}" style="width:${pct}%"></div></div><div class="sus-pct">${c}</div></div>`;
     }).join('');
     // Also update round-end sus
     const reEl=document.getElementById('re-sus');
@@ -1851,14 +2258,15 @@ async function goToVote(){
   clearInterval(G.timerInt);sfx('vote');
   G.selectedVote=null;
   document.getElementById('v-round').textContent=G.currentRound;
-  const snap=await get(rRef('players'));
-  const others=Object.values(snap.val()||{}).filter(p=>p.id!==G.myId);
+  const roomSnap=await get(rRef());
+  const room=roomSnap.val()||{};
+  const others=Object.values(room.players||{}).filter(p=>p.id!==G.myId);
   document.getElementById('vote-opts').innerHTML=others.map(p=>`
-    <div class="vote-opt" id="vo-${p.id}" onclick="selVote('${p.id}')">
+    <div class="vote-opt" id="vo-${esc(p.id)}" onclick="selVote('${esc(p.id)}')">
       <div style="font-size:1.8rem">🕵️</div>
       <div style="flex:1">
-        <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold3)">${p.name}</div>
-        <div style="font-size:.72rem;color:var(--smoke);font-style:italic">Sospechoso</div>
+        <div style="font-family:'Cinzel',serif;font-size:.82rem;color:var(--gold3)">${esc(p.name)}</div>
+        <div class="vote-meta">${esc((room.pressureProfiles||{})[p.id]||'Tiene algún punto oscuro en su declaración.')}</div>
       </div>
       <div class="vcheck">✓</div>
     </div>`).join('');
@@ -1887,7 +2295,7 @@ async function submitVote(){
     const players=Object.values(d.players||{});
     document.getElementById('vw-list').innerHTML=players.map(p=>{
       const voted=!!votes[p.id];
-      return`<div class="player-row"><div class="pdot ${voted?'pdot-green':'pdot-dim'}"></div><div class="player-row-name">${p.name}</div><div class="player-row-tag" style="color:${voted?'var(--gold3)':'var(--smoke)'}">${voted?'✓ Votó':'...'}</div></div>`;
+      return`<div class="player-row"><div class="pdot ${voted?'pdot-green':'pdot-dim'}"></div><div class="player-row-name">${esc(p.name)}</div><div class="player-row-tag" style="color:${voted?'var(--gold3)':'var(--smoke)'}">${voted?'✓ Votó':'...'}</div></div>`;
     }).join('');
     if(G.isHost&&players.length>0&&Object.keys(votes).length>=players.length)closeRound(d,players);
   });
@@ -1931,9 +2339,14 @@ function enterRoundEnd(d){
   const total=Object.values(counts).reduce((a,b)=>a+b,0)||1;
   get(rRef('players')).then(snap=>{
     const players=Object.values(snap.val()||{});
+    const sorted=[...players].sort((a,b)=>(counts[b.id]||0)-(counts[a.id]||0));
+    const top=sorted[0];
+    document.getElementById('re-summary').innerHTML=top
+      ? `<strong>Más señalado</strong><div class="director-tip">${esc(top.name)} acumula ${counts[top.id]||0} de ${total} acusación${total!==1?'es':''} en esta ronda.</div>`
+      : '<strong>Sin acusaciones</strong><div class="director-tip">Nadie ha quedado especialmente señalado todavía.</div>';
     document.getElementById('re-sus').innerHTML=players.map(p=>{
       const c=counts[p.id]||0;const pct=Math.round((c/total)*100);
-      return`<div class="sus-row"><div class="sus-name">${p.name}</div><div class="sus-bg"><div class="sus-fill${pct>60?' hot':''}" style="width:${pct}%"></div></div><div class="sus-pct">${c}</div></div>`;
+      return`<div class="sus-row"><div class="sus-name">${esc(p.name)}</div><div class="sus-bg"><div class="sus-fill${pct>60?' hot':''}" style="width:${pct}%"></div></div><div class="sus-pct">${c}</div></div>`;
     }).join('');
   });
 
@@ -1951,7 +2364,7 @@ async function nextRound(){
   sfx('click');
   const snap=await get(rRef());
   const d=snap.val()||{};
-  await update(rRef(),{phase:'debate',round:(d.round||1)+1,timerStart:Date.now(),readyForDebate:{}});
+  await update(rRef(),{phase:'debate',round:(d.round||1)+1,timerStart:Date.now(),roundSeconds:G.roundSeconds,timerPaused:false,timerRemaining:null,readyForDebate:{}});
 }
 window.nextRound=nextRound;
 
@@ -1971,7 +2384,7 @@ function enterVerdict(d){
     // Tally
     document.getElementById('verdict-tally').innerHTML=sorted.map((p,i)=>{
       const c=counts[p.id]||0;const pct=Math.round((c/grandTotal)*100);
-      return`<div class="vbar"><div class="vbar-label"><span>${p.name}</span><span>${c} voto${c!==1?'s':''}</span></div><div class="vbar-track"><div class="vbar-fill${i===0?' top':''}" style="width:${pct}%"></div></div></div>`;
+      return`<div class="vbar"><div class="vbar-label"><span>${esc(p.name)}</span><span>${c} voto${c!==1?'s':''}</span></div><div class="vbar-track"><div class="vbar-fill${i===0?' top':''}" style="width:${pct}%"></div></div></div>`;
     }).join('');
 
     // Find killer usando killerIdx de Firebase
@@ -1996,6 +2409,14 @@ function enterVerdict(d){
 
     document.getElementById('verdict-headline').textContent=win?'¡La justicia ha triunfado!':'El asesino escapa impune...';
     document.getElementById('verdict-body').textContent=win?`${killer?.name} ha sido desenmascarado por los detectives.`:`${killer?.name} ha engañado a todos y escapa libre.`;
+    lastVerdictSummary=[
+      'MISTERIO MORTAL',
+      'Caso: '+(G.scenario.title||''),
+      'Víctima: '+(G.scenario.victim||''),
+      'Resultado: '+(win?'ganan los inocentes':'el asesino escapa'),
+      'Asesino: '+(killer?.name||'desconocido')+(killerRole?` (${killerRole.name})`:''),
+      'Verdad: '+(G.scenario.truth||'')
+    ].join('\n');
 
     // Roles revealed
     document.getElementById('verdict-roles').innerHTML=players.map(p=>{
@@ -2008,8 +2429,8 @@ function enterVerdict(d){
       if(isK)tags+='<span class="rev-tag tag-k">🔪 Asesino</span>';
       else if(isA)tags+='<span class="rev-tag tag-a">🗡 Cómplice</span>';
       else tags+='<span class="rev-tag tag-i">✓ Inocente</span>';
-      if(sp&&!isK)tags+=` <span style="font-size:.6rem;color:var(--smoke);font-style:italic">${sp.label}</span>`;
-      return`<div class="rev-row"><div class="rev-icon">${role?.icon||'🕵️'}</div><div><div class="rev-player">${p.name}</div><div class="rev-role">${role?.name||'Sospechoso'}</div>${tags}</div></div>`;
+      if(sp&&!isK)tags+=` <span style="font-size:.6rem;color:var(--smoke);font-style:italic">${esc(sp.label)}</span>`;
+      return`<div class="rev-row"><div class="rev-icon">${esc(role?.icon||'🕵️')}</div><div><div class="rev-player">${esc(p.name)}</div><div class="rev-role">${esc(role?.name||'Sospechoso')}</div>${tags}</div></div>`;
     }).join('');
 
     // Truth
@@ -2021,6 +2442,14 @@ function enterVerdict(d){
   goTo('s-verdict');
 }
 
+async function copyVerdictSummary(){
+  if(!lastVerdictSummary){toast('Aún no hay resumen');return;}
+  try{await navigator.clipboard.writeText(lastVerdictSummary);toast('Resumen copiado');}
+  catch(e){toast('No se pudo copiar');}
+  sfx('click');
+}
+window.copyVerdictSummary=copyVerdictSummary;
+
 // ══ SCENARIO LIST ══
 function buildScenarioList(){
   const el=document.getElementById('scenario-list-view');
@@ -2028,16 +2457,25 @@ function buildScenarioList(){
   el.innerHTML=SCENARIOS.map((s,i)=>`
     <div class="card" style="padding:12px">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:2rem;flex-shrink:0">${s.emoji}</div>
+        <div style="font-size:2rem;flex-shrink:0">${esc(s.emoji)}</div>
         <div>
-          <div style="font-family:'Cinzel',serif;font-size:.88rem;color:var(--gold3)">${s.title}</div>
-          <div style="font-size:.78rem;color:var(--smoke);margin-top:2px;font-style:italic">Víctima: ${s.victim}</div>
-          <div style="font-size:.75rem;color:var(--ash);margin-top:4px;line-height:1.5">${s.setting.substring(0,120)}...</div>
+          <div style="font-family:'Cinzel',serif;font-size:.88rem;color:var(--gold3)">${esc(s.title)}</div>
+          <div style="font-size:.78rem;color:var(--smoke);margin-top:2px;font-style:italic">Víctima: ${esc(s.victim)}</div>
+          <div style="font-size:.75rem;color:var(--ash);margin-top:4px;line-height:1.5">${esc(s.setting.substring(0,120))}...</div>
         </div>
       </div>
     </div>`).join('');
 }
 window.buildScenarioList=buildScenarioList;
+
+function applyDeepLink(){
+  const code=cleanCode(new URLSearchParams(location.search).get('room')||'');
+  if(!code)return;
+  const input=document.getElementById('join-code');
+  if(input)input.value=code;
+  goTo('s-join');
+  toast('Código de sala cargado');
+}
 
 // ══ LEAVE / REPLAY ══
 async function leaveRoom(){
@@ -2046,7 +2484,8 @@ async function leaveRoom(){
     await remove(ref(db,`salas/${G.code}/players/${G.myId}`));
     if(G.isHost)await remove(ref(db,`salas/${G.code}`));
   }
-  G={code:null,myId:null,myName:null,isHost:false,playerCount:4,myRole:null,scenario:null,currentRound:0,selectedVote:null,timerInt:null,unsubs:[]};
+  clearSession();
+  G={code:null,myId:null,myName:null,isHost:false,playerCount:4,myRole:null,scenario:null,selectedScenarioIdx:-1,roundSeconds:180,currentRound:0,selectedVote:null,timerInt:null,unsubs:[]};
   setPc(4);sfx('click');goTo('s-home');
 }
 window.leaveRoom=leaveRoom;
@@ -2054,11 +2493,14 @@ window.leaveRoom=leaveRoom;
 async function playAgain(){
   clearInterval(G.timerInt);unsub();_globalListening=false;
   if(G.isHost){
-    const sidx=Math.floor(Math.random()*SCENARIOS.length);
+    const sidx=G.selectedScenarioIdx>=0?G.selectedScenarioIdx:Math.floor(Math.random()*SCENARIOS.length);
     G.scenario=SCENARIOS[sidx];
-    await update(rRef(),{phase:'lobby',scenarioIdx:sidx,assignments:null,confirmedRoles:null,round:0,roundVotes:null,allVotes:null,lastRoundVotes:null,readyForDebate:null});
+    await update(rRef(),{phase:'lobby',scenarioIdx:sidx,selectedScenarioIdx:G.selectedScenarioIdx,roundSeconds:G.roundSeconds,assignments:null,confirmedRoles:null,round:0,roundVotes:null,allVotes:null,lastRoundVotes:null,readyForDebate:null});
+    saveSession({scenarioIdx:sidx,selectedScenarioIdx:G.selectedScenarioIdx,roundSeconds:G.roundSeconds});
     document.getElementById('lobby-code').textContent=G.code;
     document.getElementById('lob-max').textContent=G.playerCount;
+    renderCasePreview('lobby-case-preview',G.scenario,G.roundSeconds);
+    updateLobbyInvite();
     sfx('click');goTo('s-lobby');listenLobby();
   }else{
     document.getElementById('wait-code').textContent=G.code;
@@ -2066,6 +2508,9 @@ async function playAgain(){
   }
 }
 window.playAgain=playAgain;
+
+buildScenarioPicker();
+restoreSession().then(()=>{if(!G.code)applyDeepLink();});
 
 </script>
 </body>
