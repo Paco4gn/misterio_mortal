@@ -1687,6 +1687,33 @@ function listenPlayerList(elId){
   G.unsubs.push(u);
 }
 
+function roleMotive(role){
+  const raw=(role.killerSecret||role.secret||'').replace(/^Eres (el asesino|la asesina)\.\s*/i,'');
+  return raw.split('.').slice(0,2).join('. ').trim()||'Tenía un motivo oculto para silenciar a la víctima';
+}
+
+function buildCaseVariant(sc,players,assignments,killerIdx){
+  const assignedRoles=players.map(p=>({player:p,idx:assignments[p.id],role:assignRole(p.id,assignments[p.id],sc)}));
+  const killerEntry=assignedRoles.find(x=>x.idx===killerIdx)||assignedRoles[0];
+  const killerRole=killerEntry?.role||sc.roles.find(r=>r.isKiller)||sc.roles[0];
+  const redHerrings=shuffle(assignedRoles.filter(x=>x.idx!==killerIdx)).slice(0,3);
+  const baseClues=shuffle([...(sc.clues||[])]);
+  const extraClues=shuffle([...(sc.extraClues||[])]);
+  const publicClues=[
+    baseClues[0]||'La escena fue manipulada para que pareciera más simple de lo que era.',
+    (redHerrings[0]?.role?.falseClue)||extraClues[0]||'Un testimonio sitúa a alguien cerca de la escena, pero la hora no encaja del todo.',
+    `La coartada de ${killerRole.name} tiene un tramo difícil de comprobar, aunque no es la única con huecos.`,
+    (redHerrings[1]?.role?.falseClue)||baseClues[1]||'Un objeto fuera de lugar abre una segunda línea de sospecha.',
+    `La víctima guardaba una conexión secreta con ${killerRole.name}: ${roleMotive(killerRole)}.`
+  ].filter(Boolean);
+  while(publicClues.length<5){
+    publicClues.push(extraClues[publicClues.length%Math.max(1,extraClues.length)]||DOUBT_CARDS[publicClues.length%DOUBT_CARDS.length]);
+  }
+  const detectiveClue=`Pista reservada: ${killerRole.name} no solo tenía oportunidad; también tenía una razón concreta para que la víctima callara. Aun así, necesitas que el grupo conecte motivo, acceso y coartada.`;
+  const finalTruth=`${killerEntry?.player?.name||'El culpable'} actuó como ${killerRole.name}. ${roleMotive(killerRole)} La escena dejó varias pistas contradictorias porque otros invitados también ocultaban secretos, pero la combinación de motivo, oportunidad y coartada falsa apuntaba al verdadero culpable.`;
+  return {publicClues:publicClues.slice(0,5),detectiveClue,finalTruth};
+}
+
 // ══ START GAME ══
 async function startGame(){
   const snap=await get(rRef('players'));
@@ -1718,17 +1745,22 @@ async function startGame(){
   const roleIndices=buildAssignments(players,sc);
   const assignments={};
   players.forEach((p,i)=>{assignments[p.id]=roleIndices[i];});
+  roleIndices.forEach(idx=>{
+    if(roleAlibiIdx[idx]!==undefined)return;
+    const role=assignRole('',idx,sc);
+    const pool=role.alibis||[role.alibi||''];
+    roleAlibiIdx[idx]=Math.floor(Math.random()*pool.length);
+  });
 
   // Elegir asesino entre TODOS los jugadores asignados (base + extra)
   // Así con 8 jugadores cualquiera puede ser el asesino
   const totalAssigned=players.length;
   const killerIdx=roleIndices[Math.floor(Math.random()*totalAssigned)];
 
-  // Guardar pista 4 para detective (para que no se pierda si se recarga)
-  const clue4=sc.clues[3]||sc.clues[sc.clues.length-1]||'';
-
   // Barajar orden de las pistas extra
   const extraOrder=shuffle([...Array((sc.extraClues||[]).length+sc.roles.length).keys()]);
+  const caseVariant=buildCaseVariant(sc,players,assignments,killerIdx);
+  const clue4=caseVariant.detectiveClue;
 
   const witnessTargets={};
   const pressureProfiles={};
@@ -1757,6 +1789,8 @@ async function startGame(){
     pressureProfiles,
     privateObjectives,
     doubtCards,
+    publicClues:caseVariant.publicClues,
+    finalTruth:caseVariant.finalTruth,
     extraOrder,
     clue4,
     roundSeconds:G.roundSeconds,
@@ -1929,7 +1963,7 @@ function enterRoleScreen(d){
 
   // Detective: usar clue4 de Firebase (persistente aunque recargues)
   if(role.special==='detective'){
-    const clue4=d.clue4||G.scenario.clues[3]||G.scenario.clues[G.scenario.clues.length-1];
+    const clue4=d.clue4||(d.publicClues||G.scenario.clues)[3]||G.scenario.clues[G.scenario.clues.length-1];
     secretText+='\n\n🔍 TU PISTA SECRETA (solo tú la ves):\n"'+clue4+'"\n\nMemorízala. No aparecerá en ningún otro sitio.';
     G.myRole._clue4=clue4;
   }
@@ -1988,7 +2022,7 @@ function enterRoleScreen(d){
   if(specialSnap){
     let powerTxt='';
     if(role.special==='detective'){
-      const clue4=G.myRole._clue4||G.scenario.clues[3]||G.scenario.clues[G.scenario.clues.length-1];
+      const clue4=G.myRole._clue4||d.clue4||(d.publicClues||G.scenario.clues)[3]||G.scenario.clues[G.scenario.clues.length-1];
       powerTxt='Solo tú conoces esta pista. Nadie más la verá.\n\n🔍 PISTA SECRETA Nº4:\n\n"'+clue4+'"\n\nÚsala en el momento que más daño haga al asesino.';
     } else {
       powerTxt=specialSnap.power;
@@ -2074,7 +2108,8 @@ function enterDebate(d){
   const s=G.scenario;
   if(d.roundSeconds)G.roundSeconds=d.roundSeconds;
   if(!G.myRole)hydrateMyRole(d);
-  const clue=s.clues[round-1]||'—';
+  const publicClues=d.publicClues||s.clues||[];
+  const clue=publicClues[round-1]||'—';
 
   document.getElementById('debate-badge').textContent='Ronda '+round;
   document.getElementById('deb-sc-name').textContent=s.title;
@@ -2097,7 +2132,7 @@ function enterDebate(d){
 
   // All clues
   let cluesHtml='';
-  for(let i=0;i<round;i++){cluesHtml+=`<div class="clue-entry"><div class="clue-n">${i+1}</div><div class="clue-txt">${esc(s.clues[i])}</div></div>`;}
+  for(let i=0;i<round;i++){cluesHtml+=`<div class="clue-entry"><div class="clue-n">${i+1}</div><div class="clue-txt">${esc(publicClues[i]||'—')}</div></div>`;}
   document.getElementById('all-clues-list').innerHTML=cluesHtml;
 
   // My role panel
@@ -2350,7 +2385,8 @@ function enterRoundEnd(d){
     }).join('');
   });
 
-  const nextClue=G.scenario.clues[round]??null;
+  const publicClues=d.publicClues||G.scenario.clues||[];
+  const nextClue=publicClues[round]??null;
   const nc=document.getElementById('re-next-card');
   if(nextClue){nc.style.display='';document.getElementById('re-next-clue').textContent=nextClue;}
   else nc.style.display='none';
@@ -2415,7 +2451,7 @@ function enterVerdict(d){
       'Víctima: '+(G.scenario.victim||''),
       'Resultado: '+(win?'ganan los inocentes':'el asesino escapa'),
       'Asesino: '+(killer?.name||'desconocido')+(killerRole?` (${killerRole.name})`:''),
-      'Verdad: '+(G.scenario.truth||'')
+      'Verdad: '+(d.finalTruth||G.scenario.truth||'')
     ].join('\n');
 
     // Roles revealed
@@ -2434,7 +2470,7 @@ function enterVerdict(d){
     }).join('');
 
     // Truth
-    document.getElementById('verdict-truth').textContent=G.scenario.truth||'';
+    document.getElementById('verdict-truth').textContent=d.finalTruth||G.scenario.truth||'';
 
     if(win)achieve('⚖️','¡Justicia consumada!');
     else achieve('🔪','El asesino ha escapado');
