@@ -379,6 +379,13 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
 .mystery-note{background:rgba(64,160,128,.08);border:1px solid rgba(64,160,128,.22);
   border-radius:var(--r);padding:11px;margin-top:10px;color:var(--ash);font-style:italic;line-height:1.5}
 .vote-meta{font-size:.72rem;color:var(--ash);font-style:italic;line-height:1.35;margin-top:3px}
+.target-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.target-btn{font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.07em;color:var(--chalk);
+  background:rgba(255,255,255,.04);border:1px solid rgba(180,140,40,.16);border-radius:4px;
+  padding:9px 6px;cursor:pointer;min-height:38px}
+.power-log-entry{border-bottom:1px solid rgba(255,255,255,.06);padding:9px 0;font-size:.85rem;line-height:1.45;color:var(--chalk)}
+.power-log-entry:last-child{border-bottom:none}
+.power-used{opacity:.72;filter:saturate(.7)}
 .vote-opt{display:flex;align-items:center;gap:12px;padding:14px;
   background:rgba(20,16,12,.9);border:2px solid rgba(180,140,40,.1);
   border-radius:var(--r);margin-bottom:10px;cursor:pointer;transition:all .2s}
@@ -840,6 +847,7 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     <div class="card card-gold mt2" id="role-power-card" style="display:none">
       <span class="t-label mb1" style="color:#d080ff">⚡ Tu Poder Especial</span>
       <p class="t-body" style="font-size:.88rem" id="role-power-text"></p>
+      <div id="role-power-actions"></div>
     </div>
     <div class="card mt2">
       <span class="t-label mb1">📝 Mis Notas Privadas</span>
@@ -909,6 +917,10 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     </div>
     <button class="btn btn-ghost mini-danger mt2" onclick="skipRound()">Saltar ronda</button>
   </div>
+  <div class="card card-teal mt2" id="power-log-card" style="display:none">
+    <span class="t-label t-teal mb1">⚡ Poderes Usados</span>
+    <div id="power-log"></div>
+  </div>
   <div class="card card-blood">
     <div class="row mb1">
       <div style="width:10px;height:10px;border-radius:50%;background:var(--blood3);box-shadow:0 0 8px var(--blood2);flex-shrink:0"></div>
@@ -957,6 +969,7 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
     <div class="card card-gold mt2" id="deb-power-card" style="display:none">
       <span class="t-label mb1" style="color:#d080ff">⚡ Tu Poder</span>
       <p class="t-body" style="font-size:.85rem" id="deb-power-txt"></p>
+      <div id="deb-power-actions"></div>
     </div>
     <div class="card mt2">
       <span class="t-label mb1">📝 Mis Notas Privadas</span>
@@ -1131,25 +1144,25 @@ window.goTo=goTo;
 
 // ══ DATA ══
 const ROLES_POOL={
-  detective:{id:'detective',label:'🔍 Detective',power:'Antes del debate de la Ronda 1 puedes leer la pista secreta nº4. Solo tú la sabes. Úsala cuando más daño haga.'},
-  witness:{id:'witness',label:'👁 Testigo',power:'El juego te ha revelado el nombre de alguien que viste cerca de la escena. Puedes revelarlo en el debate cuando quieras diciendo: "Yo vi a [nombre] esa noche."'},
-  medium:{id:'medium',label:'🔮 Médium',power:'Una vez en la partida puedes hacer UNA pregunta directa a cualquier jugador. Ese jugador está OBLIGADO a responder con la verdad.'},
-  accomplice:{id:'accomplice',label:'🗡 Cómplice',power:'Conoces la identidad del Asesino. Debes protegerle sin ser descubierto. Si el asesino escapa, tú también ganas. Si le pillan, los dos perdéis.'},
-  forense:{id:'forense',label:'🔬 Forense',power:'Conoces la hora exacta de la muerte. Una vez en el debate puedes señalar a alguien y decir: "Tu coartada es imposible según mi análisis forense." Ese jugador debe explicarse.'},
-  infiltrado:{id:'infiltrado',label:'🕶️ Infiltrado',power:'Llevas semanas vigilando a alguien. El juego te ha revelado un secreto comprometedor de otro jugador concreto. Puedes revelarlo cuando sea más oportuno.'},
-  chantajista:{id:'chantajista',label:'💰 Chantajista',power:'Si alguien te acusa directamente puedes activar tu escudo diciendo: "Sé algo de ti." Ese jugador no puede volverte a acusar esa ronda.'},
-  guardian:{id:'guardian',label:'🛡️ Guardaespaldas',power:'Una vez puedes declarar que estuviste con otro jugador toda la noche. Ese jugador queda protegido de votos esa ronda, pero tú quedas muy expuesto a las sospechas.'},
-  abogado:{id:'abogado',label:'⚖️ Abogado',power:'Una vez puedes invocar "confidencialidad profesional" y negarte a responder UNA pregunta sin que nadie pueda insistir.'},
-  periodista:{id:'periodista',label:'📰 Periodista',power:'Una vez puedes revelar un dato comprometedor del pasado de cualquier jugador como si fuera información verificada de tu investigación.'},
-  psicologo:{id:'psicologo',label:'🧠 Psicólogo',power:'Una vez puedes señalar a alguien y decir: "Tu lenguaje corporal delata que mientes." Ese jugador debe convencer al grupo de lo contrario antes de seguir el debate.'},
-  actriz:{id:'actriz',label:'🎭 Actriz',power:'Una vez puedes declarar que alguien "te confesó algo en privado" sin decir qué. Esa persona tendrá que desmentirlo ante todos.'},
-  hacker:{id:'hacker',label:'💻 Hacker',power:'Una vez puedes revelar un "dato de los registros digitales" de cualquier jugador: dónde estaba y cuándo. Nadie puede verificarlo.'},
-  fantasma:{id:'fantasma',label:'👻 Fantasma',power:'Puedes cambiar tu historia UNA vez durante la partida sin que nadie use ese cambio como prueba de que mientes.'},
-  enfermera:{id:'enfermera',label:'💉 Enfermera',power:'Una vez puedes dar un detalle médico preciso sobre la causa de la muerte que nadie más podría saber sin haber examinado el cuerpo.'},
-  policia:{id:'policia',label:'🚔 Policía Retirado',power:'Una vez puedes hacer un interrogatorio de 60 segundos a cualquier jugador. Nadie puede interrumpir y el interrogado debe responder todo lo que se le pregunte.'},
-  gemelo:{id:'gemelo',label:'👥 Gemelo',power:'Una vez puedes decir que viste a otro jugador en un sitio concreto a una hora concreta. Casi imposible desmentirte sin testigos adicionales.'},
-  vidente:{id:'vidente',label:'🔮 Vidente',power:'Una vez puedes señalar dramáticamente a alguien y decir: "Las señales apuntan a ti." Ese jugador debe convencer al grupo de que te equivocas.'},
-  notario:{id:'notario',label:'📋 Notario',power:'Una vez puedes revelar la existencia de un documento legal comprometedor firmado por cualquier jugador. No necesitas mostrarlo.'}
+  detective:{id:'detective',label:'🔍 Detective',mode:'passive',power:'Tu móvil te da una pista secreta estable de esta partida. No se marca como usado: decide cuándo revelarla.'},
+  witness:{id:'witness',label:'👁 Testigo',mode:'self',power:'Pulsa para publicar en la mesa que viste a una persona cerca de la escena. Queda registrado para todos.'},
+  medium:{id:'medium',label:'🔮 Médium',mode:'target',power:'Elige a un jugador desde el móvil: debe responder una pregunta directa con sí/no o una frase corta.'},
+  accomplice:{id:'accomplice',label:'🗡 Cómplice',mode:'passive',power:'Tu móvil te revela quién es el asesino. Tu misión es protegerle sin quedar expuesto.'},
+  forense:{id:'forense',label:'🔬 Forense',mode:'target',power:'Marca una coartada como imposible. El objetivo debe explicar públicamente su hueco horario.'},
+  infiltrado:{id:'infiltrado',label:'🕶️ Infiltrado',mode:'target',power:'Elige un jugador y publica que tienes información comprometida sobre su secreto.'},
+  chantajista:{id:'chantajista',label:'💰 Chantajista',mode:'self',power:'Activa un escudo de chantaje: no pueden votarte en esta ronda.'},
+  guardian:{id:'guardian',label:'🛡️ Guardaespaldas',mode:'target',power:'Protege a un jugador: no puede recibir votos durante esta ronda.'},
+  abogado:{id:'abogado',label:'⚖️ Abogado',mode:'self',power:'Activa confidencialidad: puedes negarte a responder una pregunta y queda registrado.'},
+  periodista:{id:'periodista',label:'📰 Periodista',mode:'target',power:'Publica una exclusiva sobre un jugador. La mesa debe discutir ese dato antes de votar.'},
+  psicologo:{id:'psicologo',label:'🧠 Psicólogo',mode:'target',power:'Marca a un jugador como evasivo. Debe defender su lenguaje corporal o su tono.'},
+  actriz:{id:'actriz',label:'🎭 Actriz',mode:'target',power:'Elige a alguien y publica que hubo una confesión privada ambigua. Debe desmentirla.'},
+  hacker:{id:'hacker',label:'💻 Hacker',mode:'target',power:'Revela un registro digital dudoso sobre dónde estuvo un jugador.'},
+  fantasma:{id:'fantasma',label:'👻 Fantasma',mode:'self',power:'Activa cambio de versión: puedes corregir una parte de tu historia sin penalización social.'},
+  enfermera:{id:'enfermera',label:'💉 Enfermera',mode:'self',power:'Publica un detalle médico que obliga a reinterpretar la pista actual.'},
+  policia:{id:'policia',label:'🚔 Policía Retirado',mode:'target',power:'Inicia interrogatorio de 60 segundos contra un jugador. Nadie puede interrumpir.'},
+  gemelo:{id:'gemelo',label:'👥 Gemelo',mode:'target',power:'Crea una coartada cruzada con un jugador: ambos deben explicar si estuvieron cerca.'},
+  vidente:{id:'vidente',label:'🔮 Vidente',mode:'target',power:'Señala a un jugador como foco de la ronda. Todos deben hacerle una pregunta.'},
+  notario:{id:'notario',label:'📋 Notario',mode:'target',power:'Publica que existe un documento legal o firmado que compromete a un jugador.'}
 };
 
 const EXTRA_ROLES=[
@@ -1934,6 +1947,31 @@ function buildPrivateIntel(players,assignments,sc,killerIdx,extraPool,extraOrder
   return packets;
 }
 
+const POWER_ACTIONS={
+  witness:p=>`👁 ${p.actor} revela que vio a ${p.extra||'alguien'} cerca de la escena.`,
+  medium:p=>`🔮 ${p.actor} obliga a ${p.target} a responder una pregunta directa.`,
+  forense:p=>`🔬 ${p.actor} declara que la coartada de ${p.target} tiene un fallo forense.`,
+  infiltrado:p=>`🕶️ ${p.actor} revela que tiene información comprometida sobre ${p.target}.`,
+  chantajista:p=>`💰 ${p.actor} activa chantaje: no puede recibir votos esta ronda.`,
+  guardian:p=>`🛡️ ${p.actor} protege a ${p.target}: no puede recibir votos esta ronda.`,
+  abogado:p=>`⚖️ ${p.actor} invoca confidencialidad y puede negarse a responder una pregunta.`,
+  periodista:p=>`📰 ${p.actor} publica una exclusiva sobre ${p.target}.`,
+  psicologo:p=>`🧠 ${p.actor} marca a ${p.target} como evasivo: debe explicarse.`,
+  actriz:p=>`🎭 ${p.actor} afirma que ${p.target} le confesó algo en privado.`,
+  hacker:p=>`💻 ${p.actor} revela un registro digital dudoso sobre ${p.target}.`,
+  fantasma:p=>`👻 ${p.actor} cambia una parte de su historia sin que cuente como contradicción.`,
+  enfermera:p=>`💉 ${p.actor} aporta un dato médico que cambia la lectura de la pista actual.`,
+  policia:p=>`🚔 ${p.actor} inicia un interrogatorio de 60 segundos a ${p.target}.`,
+  gemelo:p=>`👥 ${p.actor} vincula su coartada con ${p.target}. Ambos deben explicar el cruce.`,
+  vidente:p=>`🔮 ${p.actor} señala a ${p.target}: todos deben hacerle una pregunta.`,
+  notario:p=>`📋 ${p.actor} revela que existe un documento comprometedor sobre ${p.target}.`
+};
+
+function powerText(powerId,payload){
+  const fn=POWER_ACTIONS[powerId];
+  return fn?fn(payload):`${payload.actor} usa su poder.`;
+}
+
 function buildCaseVariant(sc,players,assignments,killerIdx){
   const assignedRoles=players.map(p=>({player:p,idx:assignments[p.id],role:assignRole(p.id,assignments[p.id],sc)}));
   const killerEntry=assignedRoles.find(x=>x.idx===killerIdx)||assignedRoles[0];
@@ -2049,6 +2087,9 @@ async function startGame(){
     round:0,
     roundVotes:{},
     allVotes:[],
+    powersUsed:{},
+    powerLog:{},
+    protectedVotes:{},
     readyForDebate:{},
     timerPaused:false,
     timerRemaining:null
@@ -2279,6 +2320,7 @@ function enterRoleScreen(d){
     document.getElementById('role-power-card').style.display='';
     document.getElementById('role-power-text').textContent=powerTxt;
     document.getElementById('role-power-text').style.whiteSpace='pre-line';
+    renderPowerControls(role,d,'role');
   }else{document.getElementById('role-power-card').style.display='none';}
 
   sfx(isK?'killer':'innocent');
@@ -2424,12 +2466,14 @@ function enterDebate(d){
       }
       document.getElementById('deb-power-txt').textContent=powerTxt;
       document.getElementById('deb-power-txt').style.whiteSpace='pre-line';
+      renderPowerControls(role,d,'deb');
     } else {
       document.getElementById('deb-power-card').style.display='none';
     }
   }
 
   renderSuspicion(d.allVotes||[]);
+  renderPowerLog(d);
   debTab('pistas');
   bindNotes();
   document.getElementById('host-controls')?.classList.toggle('show',!!G.isHost);
@@ -2482,6 +2526,64 @@ function debTab(name){
   });
 }
 window.debTab=debTab;
+
+function renderPowerControls(role,d,prefix){
+  const el=document.getElementById(prefix+'-power-actions');
+  if(!el)return;
+  el.innerHTML='';
+  if(!role?.special||!ROLES_POOL[role.special])return;
+  const sp=ROLES_POOL[role.special];
+  const used=(d.powersUsed||{})[G.myId];
+  if(sp.mode==='passive'){
+    el.innerHTML='<div class="mystery-note">Poder pasivo: tu móvil ya te ha dado esta ventaja.</div>';
+    return;
+  }
+  if(used){
+    el.innerHTML=`<div class="mystery-note power-used">Poder usado en ronda ${used.round||'?'}.</div>`;
+    return;
+  }
+  const players=Object.values(d.players||{}).filter(p=>p.id!==G.myId);
+  if(sp.mode==='self'){
+    el.innerHTML=`<button class="btn btn-teal mt2" onclick="usePower()">Usar poder ahora</button>`;
+    return;
+  }
+  el.innerHTML='<div class="target-grid">'+players.map(p=>`<button class="target-btn" onclick="usePower('${esc(p.id)}')">${esc(p.name)}</button>`).join('')+'</div>';
+}
+
+function renderPowerLog(d){
+  const card=document.getElementById('power-log-card'),el=document.getElementById('power-log');
+  if(!card||!el)return;
+  const entries=Object.values(d.powerLog||{}).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  card.style.display=entries.length?'':'none';
+  el.innerHTML=entries.map(e=>`<div class="power-log-entry">${esc(e.text)}</div>`).join('');
+}
+
+async function usePower(targetId=null){
+  if(!G.myRole?.special||G.myRole.isKiller)return;
+  const snap=await get(rRef());
+  const d=snap.val()||{};
+  if((d.powersUsed||{})[G.myId]){toast('Ya usaste tu poder');return;}
+  const sp=ROLES_POOL[G.myRole.special];
+  if(!sp||sp.mode==='passive')return;
+  const players=Object.values(d.players||{});
+  const target=players.find(p=>p.id===targetId);
+  if(sp.mode==='target'&&!target){toast('Elige objetivo');return;}
+  const actor=G.myName||players.find(p=>p.id===G.myId)?.name||'Alguien';
+  const extra=G.myRole.special==='witness'?G.myRole._witnessName:null;
+  const text=powerText(G.myRole.special,{actor,target:target?.name,extra});
+  const key=uid();
+  const updates={
+    [`powersUsed/${G.myId}`]:{power:G.myRole.special,target:targetId||null,round:G.currentRound||d.round||1,ts:Date.now()},
+    [`powerLog/${key}`]:{power:G.myRole.special,actorId:G.myId,targetId:targetId||null,text,round:G.currentRound||d.round||1,ts:Date.now()}
+  };
+  if(['guardian','chantajista'].includes(G.myRole.special)){
+    updates[`protectedVotes/${G.currentRound||d.round||1}/${G.myRole.special==='guardian'?targetId:G.myId}`]=true;
+  }
+  await update(rRef(),updates);
+  toast('Poder usado');
+  sfx('achieve');
+}
+window.usePower=usePower;
 
 function remainingSeconds(d){
   const total=d.roundSeconds||G.roundSeconds||180;
@@ -2544,7 +2646,8 @@ async function goToVote(){
   document.getElementById('v-round').textContent=G.currentRound;
   const roomSnap=await get(rRef());
   const room=roomSnap.val()||{};
-  const others=Object.values(room.players||{}).filter(p=>p.id!==G.myId);
+  const protectedNow=(room.protectedVotes||{})[G.currentRound||room.round||1]||{};
+  const others=Object.values(room.players||{}).filter(p=>p.id!==G.myId&&!protectedNow[p.id]);
   document.getElementById('vote-opts').innerHTML=others.map(p=>`
     <div class="vote-opt" id="vo-${esc(p.id)}" onclick="selVote('${esc(p.id)}')">
       <div style="font-size:1.8rem">🕵️</div>
@@ -2554,6 +2657,7 @@ async function goToVote(){
       </div>
       <div class="vcheck">✓</div>
     </div>`).join('');
+  if(!others.length)document.getElementById('vote-opts').innerHTML='<div class="card"><p class="t-scene center">Todos los posibles objetivos estÃ¡n protegidos esta ronda.</p></div>';
   const btn=document.getElementById('vote-confirm-btn');btn.style.display='none';
   goTo('s-vote');
 }
@@ -2781,7 +2885,7 @@ async function playAgain(){
   if(G.isHost){
     const sidx=G.selectedScenarioIdx>=0?G.selectedScenarioIdx:Math.floor(Math.random()*SCENARIOS.length);
     G.scenario=SCENARIOS[sidx];
-    await update(rRef(),{phase:'lobby',scenarioIdx:sidx,selectedScenarioIdx:G.selectedScenarioIdx,roundSeconds:G.roundSeconds,assignments:null,confirmedRoles:null,round:0,roundVotes:null,allVotes:null,lastRoundVotes:null,readyForDebate:null});
+    await update(rRef(),{phase:'lobby',scenarioIdx:sidx,selectedScenarioIdx:G.selectedScenarioIdx,roundSeconds:G.roundSeconds,assignments:null,confirmedRoles:null,round:0,roundVotes:null,allVotes:null,lastRoundVotes:null,powersUsed:null,powerLog:null,protectedVotes:null,readyForDebate:null});
     saveSession({scenarioIdx:sidx,selectedScenarioIdx:G.selectedScenarioIdx,roundSeconds:G.roundSeconds});
     document.getElementById('lobby-code').textContent=G.code;
     document.getElementById('lob-max').textContent=G.playerCount;
