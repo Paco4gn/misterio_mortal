@@ -1692,6 +1692,13 @@ function roleMotive(role){
   return raw.split('.').slice(0,2).join('. ').trim()||'Tenía un motivo oculto para silenciar a la víctima';
 }
 
+function innocentSecretFor(role){
+  if(!role?.isKiller)return role?.secret||'Tienes un secreto incómodo, pero no mataste a la víctima.';
+  const motive=roleMotive(role);
+  const cover=role.falseClue?` Puedes desviar la atención con esto si te acorralan: ${role.falseClue}`:'';
+  return `Eres inocente, pero tienes el motivo más peligroso de la mesa: ${motive}. Si el grupo descubre esto demasiado pronto, parecerás culpable aunque no hayas matado a nadie.${cover}`;
+}
+
 function buildCaseVariant(sc,players,assignments,killerIdx){
   const assignedRoles=players.map(p=>({player:p,idx:assignments[p.id],role:assignRole(p.id,assignments[p.id],sc)}));
   const killerEntry=assignedRoles.find(x=>x.idx===killerIdx)||assignedRoles[0];
@@ -1756,6 +1763,12 @@ async function startGame(){
   // Así con 8 jugadores cualquiera puede ser el asesino
   const totalAssigned=players.length;
   const killerIdx=roleIndices[Math.floor(Math.random()*totalAssigned)];
+  Object.keys(roleSpecials).forEach(k=>delete roleSpecials[k]);
+  let si2=0;
+  [...new Set(roleIndices)].forEach(idx=>{
+    const role=assignRole('',idx,sc);
+    roleSpecials[idx]=idx===killerIdx?null:(role.special||shuffledSpecials[si2++%shuffledSpecials.length]);
+  });
 
   // Barajar orden de las pistas extra
   const extraOrder=shuffle([...Array((sc.extraClues||[]).length+sc.roles.length).keys()]);
@@ -1838,11 +1851,11 @@ function hydrateMyRole(d){
   const killerIdx=d.killerIdx??G.scenario.roles.findIndex(r=>r.isKiller);
   const amKiller=idx===killerIdx;
   const role={...baseRole,isKiller:amKiller,special:amKiller?null:((d.roleSpecials||{})[idx]||baseRole.special||null)};
+  role.secret=amKiller
+    ? (baseRole.killerSecret||baseRole.secret||'Eres el asesino. Oculta tu rastro y desvía la mesa.')
+    : innocentSecretFor(baseRole);
   role._objective=(d.privateObjectives||{})[G.myId]||'Sobrevive a la sospecha y consigue que el grupo se fije en las contradicciones reales.';
   role._publicPressure=(d.pressureProfiles||{})[G.myId]||'Hay algo en tu historia que puede levantar sospechas si te presionan.';
-  if(amKiller&&!baseRole.isKiller){
-    role.secret=baseRole.killerSecret||('Eres el asesino. Tenías motivos: '+baseRole.secret+' Esa noche aprovechaste la oportunidad. Nadie te vio... o eso crees.');
-  }
   const alibiPool=baseRole.alibis||[baseRole.alibi||''];
   const chosenAlibiIdx=(d.roleAlibiIdx||{})[idx]??0;
   role._chosenAlibi=alibiPool[chosenAlibiIdx%alibiPool.length]||alibiPool[0]||'';
@@ -1910,14 +1923,11 @@ function enterRoleScreen(d){
     isKiller: amKiller,
     special: amKiller ? null : (roleSpecials[idx]||baseRole.special||null)
   };
+  role.secret=amKiller
+    ? (baseRole.killerSecret||baseRole.secret||'Eres el asesino. Oculta tu rastro y desvía la mesa.')
+    : innocentSecretFor(baseRole);
   role._objective=(d.privateObjectives||{})[G.myId]||'Sobrevive a la sospecha y consigue que el grupo se fije en las contradicciones reales.';
   role._publicPressure=(d.pressureProfiles||{})[G.myId]||'Hay algo en tu historia que puede levantar sospechas si te presionan.';
-  // Si soy el asesino, construir secret con killerSecret del rol si existe
-  if(amKiller && !baseRole.isKiller){
-    // Este personaje no era el asesino original — usar su killerSecret específico
-    role.secret = baseRole.killerSecret ||
-      'Eres el asesino. Tenías motivos: '+baseRole.secret+' Esa noche aprovechaste la oportunidad. Nadie te vio... o eso crees.';
-  }
   // Alibi desde Firebase
   const alibiPool=baseRole.alibis||[baseRole.alibi||''];
   const chosenAlibiIdx=roleAlibiIdx[idx]??0;
@@ -2459,8 +2469,9 @@ function enterVerdict(d){
       const idx=assignments[p.id];if(idx===undefined)return'';
       const role=assignRole(p.id,idx,G.scenario);
       const isK=(idx===killerIdx);
-      const isA=role?.special==='accomplice';
-      const sp=role?.special&&ROLES_POOL[role.special]?ROLES_POOL[role.special]:null;
+      const spId=(d.roleSpecials||{})[idx]||(!isK?role?.special:null);
+      const isA=spId==='accomplice';
+      const sp=spId&&ROLES_POOL[spId]?ROLES_POOL[spId]:null;
       let tags='';
       if(isK)tags+='<span class="rev-tag tag-k">🔪 Asesino</span>';
       else if(isA)tags+='<span class="rev-tag tag-a">🗡 Cómplice</span>';
