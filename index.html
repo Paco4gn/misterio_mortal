@@ -834,7 +834,7 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
       <p class="t-scene" id="role-alibi-txt"></p>
       <div class="div-gold mt2 mb1" style="opacity:.3"></div>
       <span class="t-label mb1" style="color:var(--gold2)">📌 Información que tienes</span>
-      <p style="font-size:.72rem;color:var(--smoke);font-style:italic;margin-bottom:8px">Una es verdad. La otra es mentira. Tú sabes cuál es cuál.</p>
+      <p style="font-size:.72rem;color:var(--smoke);font-style:italic;margin-bottom:8px">No toda la información pesa igual: mezcla indicios útiles, rumores y medias verdades.</p>
       <div id="role-clues-wrap"></div>
     </div>
     <div class="card card-gold mt2" id="role-power-card" style="display:none">
@@ -951,7 +951,7 @@ input[type=text]::placeholder{color:var(--smoke);opacity:.5}
       <p class="t-scene" id="deb-alibi"></p>
       <div class="div-gold mt2 mb1" style="opacity:.3"></div>
       <span class="t-label mb1" style="color:var(--gold2)">📌 Información que tienes</span>
-      <p style="font-size:.72rem;color:var(--smoke);font-style:italic;margin-bottom:8px">Una es verdad. La otra es mentira. Tú sabes cuál es cuál.</p>
+      <p style="font-size:.72rem;color:var(--smoke);font-style:italic;margin-bottom:8px">No toda la información pesa igual: mezcla indicios útiles, rumores y medias verdades.</p>
       <div id="deb-clues-wrap"></div>
     </div>
     <div class="card card-gold mt2" id="deb-power-card" style="display:none">
@@ -1470,6 +1470,40 @@ const DOUBT_CARDS=[
   'Duda razonable: el móvil más obvio puede ser una distracción.',
   'Duda razonable: las pistas físicas señalan oportunidad, no intención.'
 ];
+const EVIDENCE_TEMPLATES=[
+  'Un objeto con marcas parciales aparece en un lugar donde varias personas pudieron entrar.',
+  'Una conversación escuchada a medias cambia de sentido según quién la cuente.',
+  'El registro horario tiene un hueco de entre ocho y veinte minutos.',
+  'Una prueba física fue limpiada con prisa, pero no lo bastante bien.',
+  'La víctima recibió un mensaje anónimo que apunta a un secreto, no necesariamente al crimen.',
+  'Alguien movió un objeto después de la muerte, quizá para ayudar, quizá para incriminar.',
+  'Un testigo recuerda una silueta, pero no puede asegurar ropa, rostro ni hora exacta.',
+  'Una puerta o acceso aparece cerrado aunque varias personas conocían una forma alternativa de entrar.',
+  'Hay una contradicción entre lo que alguien dice haber hecho y lo que otro jugador cree haber visto.',
+  'La escena contiene un detalle demasiado teatral, como si alguien quisiera dirigir las sospechas.'
+];
+const PRIVATE_INTEL_TEMPLATES=[
+  'Oíste a {A} discutir con {B}, pero solo alcanzaste a entender una amenaza velada.',
+  'Viste a {A} escondiendo algo pequeño. No sabes si era prueba, dinero o una mentira personal.',
+  '{A} te pidió que mintieras sobre una hora concreta. No te explicó por qué.',
+  'Sabes que {A} y la víctima tenían una relación secreta que nadie ha mencionado.',
+  'Encontraste una contradicción en la coartada de {A}, pero revelarla también te compromete a ti.',
+  '{A} estaba demasiado tranquilo cuando todos los demás parecían nerviosos.',
+  'Crees que {A} está protegiendo a {B}, aunque no sabes si por lealtad, miedo o chantaje.',
+  'La pista que tienes señala a {A}, pero también podría haber sido colocada por alguien con acceso.',
+  '{A} cambió de versión antes de que empezara el debate.',
+  'Tienes un dato que parece exculpar a {A}, pero solo si su hora declarada es cierta.',
+  'Un rumor apunta a {A}; quien te lo contó parecía más interesado en sembrar duda que en ayudar.',
+  '{A} sabía algo de la víctima que no debería saber.'
+];
+const COMPLICATION_TEMPLATES=[
+  'Tu secreto te obliga a no contar toda la verdad durante la primera ronda.',
+  'Si revelas tu mejor pista demasiado pronto, alguien podrá usarla contra ti.',
+  'Hay una parte de tu coartada que depende de otra persona. Si esa persona cae, tú también pareces culpable.',
+  'Tienes motivos para proteger a alguien, aunque no sepas si es inocente.',
+  'Una prueba menor te incrimina por otra falta distinta al asesinato.',
+  'Tu objetivo esta partida no es parecer perfecto: es parecer creíble.'
+];
 
 // ══ UTILS ══
 const uid=()=>Math.random().toString(36).substr(2,9);
@@ -1699,13 +1733,38 @@ function innocentSecretFor(role){
   return `Eres inocente, pero tienes el motivo más peligroso de la mesa: ${motive}. Si el grupo descubre esto demasiado pronto, parecerás culpable aunque no hayas matado a nadie.${cover}`;
 }
 
+function fillTemplate(tpl,players,selfId){
+  const pool=shuffle(players.filter(p=>p.id!==selfId));
+  const a=pool[0]?.name||'alguien';
+  const b=pool[1]?.name||'otra persona';
+  return tpl.replaceAll('{A}',a).replaceAll('{B}',b);
+}
+
+function buildPrivateIntel(players,assignments,sc,killerIdx,extraPool,extraOrder){
+  const packets={};
+  players.forEach((p,i)=>{
+    const idx=assignments[p.id];
+    const role=assignRole(p.id,idx,sc);
+    const baseFalse=role.falseClue||'Tu instinto te dice que alguien está ocultando más de lo que admite.';
+    const ordered=extraOrder.length?extraOrder:[i,i+1,i+2];
+    const extraA=extraPool[ordered[i%ordered.length]%Math.max(1,extraPool.length)]||EVIDENCE_TEMPLATES[i%EVIDENCE_TEMPLATES.length];
+    const extraB=fillTemplate(PRIVATE_INTEL_TEMPLATES[(idx+i)%PRIVATE_INTEL_TEMPLATES.length],players,p.id);
+    const complication=COMPLICATION_TEMPLATES[(idx+players.length+i)%COMPLICATION_TEMPLATES.length];
+    const killerHint=idx===killerIdx
+      ? 'Coartada de asesino: prepara una explicación sencilla para tu hueco de tiempo y acusa usando una verdad parcial.'
+      : fillTemplate(PRIVATE_INTEL_TEMPLATES[(idx+3*i+2)%PRIVATE_INTEL_TEMPLATES.length],players,p.id);
+    packets[p.id]=shuffle([baseFalse,extraA,extraB,complication,killerHint]).slice(0,4);
+  });
+  return packets;
+}
+
 function buildCaseVariant(sc,players,assignments,killerIdx){
   const assignedRoles=players.map(p=>({player:p,idx:assignments[p.id],role:assignRole(p.id,assignments[p.id],sc)}));
   const killerEntry=assignedRoles.find(x=>x.idx===killerIdx)||assignedRoles[0];
   const killerRole=killerEntry?.role||sc.roles.find(r=>r.isKiller)||sc.roles[0];
   const redHerrings=shuffle(assignedRoles.filter(x=>x.idx!==killerIdx)).slice(0,3);
-  const baseClues=shuffle([...(sc.clues||[])]);
-  const extraClues=shuffle([...(sc.extraClues||[])]);
+  const baseClues=shuffle([...(sc.clues||[]),...EVIDENCE_TEMPLATES]);
+  const extraClues=shuffle([...(sc.extraClues||[]),...EVIDENCE_TEMPLATES,...redHerrings.map(x=>x.role?.falseClue).filter(Boolean)]);
   const publicClues=[
     baseClues[0]||'La escena fue manipulada para que pareciera más simple de lo que era.',
     (redHerrings[0]?.role?.falseClue)||extraClues[0]||'Un testimonio sitúa a alguien cerca de la escena, pero la hora no encaja del todo.',
@@ -1774,6 +1833,8 @@ async function startGame(){
   const extraOrder=shuffle([...Array((sc.extraClues||[]).length+sc.roles.length).keys()]);
   const caseVariant=buildCaseVariant(sc,players,assignments,killerIdx);
   const clue4=caseVariant.detectiveClue;
+  const privatePool=[...(sc.extraClues||[]),...(sc.clues||[]),...EVIDENCE_TEMPLATES,...sc.roles.map(r=>r.falseClue).filter(Boolean)];
+  const privateIntel=buildPrivateIntel(players,assignments,sc,killerIdx,privatePool,extraOrder);
 
   const witnessTargets={};
   const pressureProfiles={};
@@ -1801,6 +1862,7 @@ async function startGame(){
     witnessTargets,
     pressureProfiles,
     privateObjectives,
+    privateIntel,
     doubtCards,
     publicClues:caseVariant.publicClues,
     finalTruth:caseVariant.finalTruth,
@@ -1869,7 +1931,8 @@ function hydrateMyRole(d){
   const extraOrder=d.extraOrder||[];
   const myExtraPos=extraOrder.length>0?(extraOrder[idx%extraOrder.length]??idx):idx;
   const poolClue=extraPool.length>0?extraPool[myExtraPos%extraPool.length]:'';
-  role._twoClues=(idx%2===0)?[fakeClue,poolClue]:[poolClue,fakeClue];
+  const packet=(d.privateIntel||{})[G.myId]||[];
+  role._twoClues=shuffle([fakeClue,poolClue,...packet]).filter(Boolean).slice(0,5);
   G.myRole=role;
   return role;
 }
@@ -2018,8 +2081,8 @@ function enterRoleScreen(d){
   const extraOrder=d.extraOrder||[];
   const myExtraPos=extraOrder.length>0?(extraOrder[idx%extraOrder.length]??idx):idx;
   const poolClue=extraPool.length>0?extraPool[myExtraPos%extraPool.length]:'';
-  // Orden mezclado basado en idx para que no sea siempre el mismo orden
-  const twoClues=(idx%2===0)?[fakeClue,poolClue]:[poolClue,fakeClue];
+  const packet=(d.privateIntel||{})[G.myId]||[];
+  const twoClues=shuffle([fakeClue,poolClue,...packet]).filter(Boolean).slice(0,5);
   G.myRole._twoClues=twoClues;
   const cluesWrap=document.getElementById('role-clues-wrap');
   if(cluesWrap){
